@@ -27,7 +27,7 @@ There are no config files, no tests, no build system. `mvuser` ships on the live
 
 ## What the Installer Does (Step by Step)
 
-The installer runs as root from the live environment. It presents a numbered menu. Steps can be run in any order but have implied dependencies.
+The installer runs as root from the live environment. It runs each step in a fixed linear sequence via `run_step`. Steps already marked complete in `checklist[]` are skipped automatically within a session. If a step fails, the user is offered retry or skip-and-continue before the installer proceeds.
 
 ### Startup (automatic)
 1. Parses CLI args: `-l/--log`, `-i/--install`, `hostname=`, `locale=`, `keymap=`

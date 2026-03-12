@@ -486,6 +486,12 @@ create_partition_scheme(){
   LUKS=0
   LVM=0
   print_title "PARTITION DRIVE - ${WIKI}/Partitioning"
+  print_danger "WARNING: This step will partition your disk. All data on the selected device will be permanently lost. Make sure you have backed up anything important before continuing."
+  read_input_text "I understand my data will be lost. Continue"
+  if [[ $OPTION != y ]]; then
+    print_info "Partitioning cancelled."
+    return 1
+  fi
   print_info "Partitioning a hard drive allows one to logically divide the available space into sections that can be accessed independently of one another."
   print_warning "Maintain Current does not work with LUKS"
   partition_layout=("Default" "LVM" "LVM+LUKS" "Maintain Current")
@@ -1222,77 +1228,59 @@ finish(){
 }
 #}}}
 
-# Trap errors and cleanup
-trap 'echo "Error occurred. Cleaning up..."; umount_partitions 2>/dev/null; exit 1' ERR
+#RUN STEP {{{
+run_step() {
+  local step_num="$1"
+  local step_label="$2"
+  shift 2
+
+  if [[ ${checklist[$step_num]} -eq 1 ]]; then
+    print_info "Step ${step_num}: ${step_label} — already complete, skipping."
+    return 0
+  fi
+
+  while true; do
+    print_title "Step ${step_num} of 8: ${step_label}"
+    local failed=0
+    for fn in "$@"; do
+      if ! $fn; then
+        failed=1
+        break
+      fi
+    done
+
+    if [[ $failed -eq 0 ]]; then
+      checklist[$step_num]=1
+      return 0
+    fi
+
+    print_danger "Step '${step_label}' encountered an error."
+    read_input_text "Retry this step"
+    if [[ $OPTION == y ]]; then
+      continue
+    fi
+    read_input_text "Continue to next step anyway"
+    [[ $OPTION == y ]] && return 0 || error_msg "Installation aborted."
+  done
+}
+#}}}
 
 check_root
 check_boot_system
 detect_cpu
 check_trim
 
-while true
-do
-  print_title "ArchBang installer - www.archbang.org"
-  echo " 1) $(mainmenu_item "${checklist[1]}" "Partition Scheme")"
-  echo " 2) $(mainmenu_item "${checklist[2]}" "Install ArchBang")"
-  echo " 3) $(mainmenu_item "${checklist[3]}" "Hostname")"
-  echo " 4) $(mainmenu_item "${checklist[4]}" "Location")"
-  echo " 5) $(mainmenu_item "${checklist[5]}" "Locale")"
-  echo " 6) $(mainmenu_item "${checklist[6]}" "Desktop Keyboard Layout")"
-  echo " 7) $(mainmenu_item "${checklist[7]}" "Bootloader")"
-  echo " 8) $(mainmenu_item "${checklist[8]}" "Root and USer Setup")"
-  echo ""
-  echo " d) Done"
-  echo ""
-  read_input_options
-  for OPT in ${OPTIONS[@]}; do
-    case "$OPT" in
-      1)
-        umount_partitions
-        create_partition_scheme
-        format_partitions
-        checklist[1]=1
-        ;;
-      2)
-        install_archbang
-        configure_fstab
-        configure_mkinitcpio
-        checklist[2]=1
-        ;;
-      3)
-        configure_hostname
-        checklist[3]=1
-        ;;
-      4)
-        configure_timezone
-        configure_hardwareclock
-        configure_mirrors
-        checklist[4]=1
-        ;;
-      5)
-        configure_locale
-        checklist[5]=1
-        ;;
-      6)
-        select_xkeymap
-        checklist[6]=1
-        ;;
-      7)
-        configure_bootloader
-        checklist[7]=1
-        ;;
-      8)
-        root_password
-        setup_user
-        checklist[8]=1
-        ;;
-      "d")
-        finish
-        ;;
-      *)
-        invalid_option
-        ;;
-    esac
-  done
-done
+print_title "ArchBang Installer - www.archbang.org"
+print_info "The installer will guide you through each step in order. You will be prompted for input at each stage."
+pause_function
+
+run_step 1 "Partition Scheme"        umount_partitions create_partition_scheme format_partitions
+run_step 2 "Install ArchBang"        install_archbang configure_fstab configure_mkinitcpio
+run_step 3 "Hostname"                configure_hostname
+run_step 4 "Location"                configure_timezone configure_hardwareclock configure_mirrors
+run_step 5 "Locale"                  configure_locale
+run_step 6 "Desktop Keyboard Layout" select_xkeymap
+run_step 7 "Bootloader"              configure_bootloader
+run_step 8 "Root and User Setup"     root_password setup_user
+finish
 #}}}
