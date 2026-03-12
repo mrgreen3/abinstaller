@@ -74,23 +74,9 @@ The installer runs as root from the live environment. It presents a numbered men
 
 ## Known Gaps and Broken Areas
 
-### Bugs
+### Pending Features
 
-1. **`$LOG` is never defined** but should be. `cecho`, `ncecho`, and `progress` all write to `$LOG`. It should default to `/tmp/abinstall.log` so logging works without requiring the `-l` flag. The `-l/--log` flag mechanism can remain for a timestamped log path.
-
-2. **`print_error` is called but never defined.** Used in `setup_luks`, `setup_lvm`, and `configure_bootloader`. Bash will report "command not found" at runtime and the ERR trap will fire, attempting `umount_partitions` and exiting.
-
-3. **`progress()` is dead code.** It uses `$pid` and `$PKG_FAIL` globals that are never set. The function is never called.
-
-4. **`AUTOMATIC_MODE` is not required** and will not be implemented. The infrastructure that checks it (`read_input`, `read_input_text`, `read_input_options`) can remain as-is since it doesn't cause harm, but `AUTOMATIC_MODE` should be treated as dead code and not developed further.
-
-5. **Console keymap (`vconsole.conf`) is missing** — needs to be added as a new installer step. Should write `KEYMAP=` to `${MNT}/etc/vconsole.conf` in the installed system. The existing `getkeymap` function (which calls `localectl list-keymaps`) is already present and can be used for this. A `configure_vconsole` function should be added and wired into the menu.
-
-6. **btrfs TRIM option in `format_partition` is wrong.** Line 736: `-O discard` is not a valid `mkfs.btrfs` option for enabling TRIM. TRIM on btrfs is a mount option (`-o discard`), not a mkfs flag.
-
-6. **`configure_mirrors` modifies `${MNT}/etc/pacman.d/mirrorlist` without backup** and permanently destroys it with sed in-place. If called before step 2 (install), the file doesn't exist. If called after, it irreversibly strips the mirrorlist.
-
-7. **`finish()` title says "WAYBANG INSTALL COMPLETED"** — appears to be a leftover from a different/renamed project.
+- **Console keymap (`vconsole.conf`) is missing** — needs to be added as a new installer step. Should write `KEYMAP=` to `${MNT}/etc/vconsole.conf` in the installed system. The existing `getkeymap` function (which calls `localectl list-keymaps`) is already present and can be used for this. A `configure_vconsole` function should be added and wired into the menu.
 
 ### Fragilities
 
