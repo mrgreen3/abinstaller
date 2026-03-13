@@ -1185,32 +1185,43 @@ setup_user(){
   print_title "CREATE NEW USER"
   echo
   
-  # Check if mvuser script exists, if not create inline user setup
-  if [[ -f ${MNT}/root/mvuser ]]; then
-    arch_chroot "/root/mvuser"
-    arch_chroot "rm -f /root/mvuser"
-  else
-    # Inline user creation if mvuser doesn't exist
-    print_info "Creating new user account..."
-    
-    read -p "Enter username: " new_username
-    
-    arch_chroot "useradd -m -G wheel,storage,power,audio,video -s /bin/bash ${new_username}"
-    
-    print_info "Set password for ${new_username}"
-    arch_chroot "passwd ${new_username}"
-    
-    # Enable sudo for wheel group
-    arch_chroot "sed -i 's/^# %wheel ALL=(ALL:ALL) ALL/%wheel ALL=(ALL:ALL) ALL/' /etc/sudoers"
-    
-    # Remove or rename live user if exists
-    if [[ -d ${MNT}/home/${LIVE_USER} ]]; then
-      read_input_text "Remove live user (${LIVE_USER}) home directory"
-      if [[ $OPTION == y ]]; then
-        arch_chroot "userdel -r ${LIVE_USER} 2>/dev/null || true"
-      fi
-    fi
+  # Guard: if live user home is already gone, rename was already done
+  if [[ ! -d ${MNT}/home/${LIVE_USER} ]]; then
+    print_info "Live user already renamed — skipping."
+    return 0
   fi
+
+  # Prompt for new username with validation
+  local new_username
+  while true; do
+    read -p "Enter the new username: " new_username
+    if [[ -n "$new_username" ]] && echo "$new_username" | grep -qE '^[a-z_][a-z0-9_-]*[$]?$'; then
+      break
+    fi
+    print_danger "Invalid username. Use lowercase letters, digits, - or _. Cannot start with a digit."
+  done
+
+  # Set password on the live user account (becomes the renamed user's password)
+  print_info "Set password for ${new_username}:"
+  while true; do
+    arch_chroot "passwd ${LIVE_USER}" && break
+  done
+
+  # Rewrite occurrences of old username inside config files
+  print_info "Updating config files..."
+  arch_chroot "find /home/${LIVE_USER} -type f -exec sed -i \"s/${LIVE_USER}/${new_username}/g\" {} +"
+
+  # Update system account files
+  arch_chroot "sed -i \"s/${LIVE_USER}/${new_username}/g\" /etc/group"
+  arch_chroot "sed -i \"s/${LIVE_USER}/${new_username}/g\" /etc/gshadow"
+  arch_chroot "sed -i \"s/${LIVE_USER}/${new_username}/g\" /etc/passwd"
+  arch_chroot "sed -i \"s/${LIVE_USER}/${new_username}/\"  /etc/shadow"
+
+  # Rename home directory and fix ownership
+  print_info "Renaming home directory..."
+  arch_chroot "mv /home/${LIVE_USER} /home/${new_username}"
+  arch_chroot "chown -R ${new_username}:users /home/${new_username}"
+  arch_chroot "chgrp ${new_username} /home/${new_username}"
   
   pause_function
 }
@@ -1240,7 +1251,10 @@ run_step() {
   fi
 
   while true; do
-    print_title "Step ${step_num} of 8: ${step_label}"
+    print_line
+    echo -e "# ${Bold}Step ${step_num} of 8: ${step_label}${Reset}"
+    print_line
+    echo ""
     local failed=0
     for fn in "$@"; do
       if ! $fn; then
