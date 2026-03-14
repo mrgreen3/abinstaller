@@ -526,6 +526,7 @@ create_partition_scheme(){
 #}}}
 #SETUP PARTITION{{{
 create_partition() {
+  print_title "SELECT PARTITION TOOL"
   apps_list=("gparted" "cfdisk" "cgdisk" "fdisk" "gdisk" "parted")
   PS3="$prompt1"
   echo -e "Select partition program:"
