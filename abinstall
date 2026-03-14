@@ -1221,7 +1221,6 @@ setup_user(){
   print_info "Renaming home directory..."
   arch_chroot "mv /home/${LIVE_USER} /home/${new_username}"
   arch_chroot "chown -R ${new_username}:users /home/${new_username}"
-  arch_chroot "chgrp ${new_username} /home/${new_username}"
   
   pause_function
 }
