@@ -1239,6 +1239,48 @@ finish(){
 }
 #}}}
 
+#WELCOME SCREEN {{{
+welcome_screen(){
+  print_title "Welcome to ArchBang!"
+
+  echo -e "${Bold}What is ArchBang?${Reset}"
+  echo -e "\tArch Linux with the Labwc Wayland compositor."
+  echo -e "\tA gentle introduction to Arch for new users.\n"
+
+  echo -e "${Bold}System Requirements:${Reset}"
+  echo -e "\t✓ 20GB+ free disk space"
+  echo -e "\t✓ 2GB+ RAM"
+  echo -e "\t✓ Booted from ArchBang live ISO\n"
+
+  echo -e "${Bold}Installation Steps (8 total):${Reset}"
+  echo -e "\t1. Partition your disk (Default, LVM, or LVM+LUKS)"
+  echo -e "\t2. Install ArchBang system files"
+  echo -e "\t3. Set hostname"
+  echo -e "\t4. Configure timezone & mirrors"
+  echo -e "\t5. Set locale & language"
+  echo -e "\t6. Configure desktop keyboard layout"
+  echo -e "\t7. Install bootloader (GRUB)"
+  echo -e "\t8. Set root password & create your user\n"
+
+  echo -e "${BYellow}⚠ Important:${Reset}"
+  echo -e "\t${Bold}All data on selected partitions will be LOST.${Reset}"
+  echo -e "\t${Bold}Backup anything important before continuing!${Reset}\n"
+
+  echo -e "${Bold}Quick Tips:${Reset}"
+  echo -e "\t• Installation typically takes 5-15 minutes"
+  echo -e "\t• You can retry or skip steps if something fails"
+  echo -e "\t• The live user 'ablive' will be renamed to your chosen username"
+  echo -e "\t• GRUB is the bootloader (installed automatically)\n"
+
+  print_line
+  read_input_text "Ready to begin?"
+  if [[ $OPTION != y ]]; then
+    print_info "Installation cancelled."
+    exit 0
+  fi
+}
+#}}}
+
 #RUN STEP {{{
 run_step() {
   local step_num="$1"
@@ -1284,9 +1326,7 @@ check_boot_system
 detect_cpu
 check_trim
 
-print_title "ArchBang Installer - www.archbang.org"
-print_info "The installer will guide you through each step in order. You will be prompted for input at each stage."
-pause_function
+welcome_screen
 
 run_step 1 "Partition Scheme"        umount_partitions create_partition_scheme format_partitions
 run_step 2 "Install ArchBang"        install_archbang configure_fstab configure_mkinitcpio
