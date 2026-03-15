@@ -62,7 +62,6 @@ sudo ./abinstall --install
 ## Files
 
 - **abinstall** - Main installation script
-- **ab-pacman-keys** - Pacman key initialization
 
 ## License
 

@@ -18,7 +18,6 @@ The installer is designed to run exclusively from the ArchBang live ISO environm
 
 - `abinstall` — The main installer script (~1300 lines of bash)
 - `mvuser` — User rename script, runs inside the chroot at `/root/mvuser` (see below)
-- `ab-pacman-keys` — Post-install helper to initialise pacman keyring
 - `README.md` — User-facing overview
 
 There are no config files, no tests, no build system. `mvuser` ships on the live ISO at `/root/` and is copied to the installed system as part of the airootfs copy in step 2.
@@ -42,7 +41,7 @@ The installer runs as root from the live environment. It runs each step in a fix
 | 3 | Hostname | `configure_hostname` |
 | 4 | Location | `configure_timezone`, `configure_hardwareclock`, `configure_mirrors` |
 | 5 | Locale | `configure_locale` |
-| 6 | Desktop Keyboard Layout | `select_xkeymap` |
+| 6 | Keyboard Layout | `configure_vconsole`, `select_xkeymap` |
 | 7 | Bootloader | `configure_bootloader` |
 | 8 | Root and User Setup | `root_password`, `setup_user` |
 | d | Done | `finish` (optionally reboots) |
@@ -73,10 +72,6 @@ The installer runs as root from the live environment. It runs each step in a fix
 ---
 
 ## Known Gaps and Broken Areas
-
-### Pending Features
-
-- **Console keymap (`vconsole.conf`) is missing** — needs to be added as a new installer step. Should write `KEYMAP=` to `${MNT}/etc/vconsole.conf` in the installed system. The existing `getkeymap` function (which calls `localectl list-keymaps`) is already present and can be used for this. A `configure_vconsole` function should be added and wired into the menu.
 
 ### Fragilities
 

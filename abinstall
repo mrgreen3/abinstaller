@@ -442,6 +442,18 @@ configure_mirrors() {
 WIKI="https://wiki.archlinux.org/index.php"
 
 #ARCHLINUX INSTALL SCRIPTS MODE {{{
+#CONFIGURE VCONSOLE {{{
+configure_vconsole(){
+  print_title "CONSOLE KEYMAP"
+  print_info "Select the keyboard layout for the virtual console (tty)."
+  OPTION=n
+  while [[ $OPTION != y ]]; do
+    getkeymap
+    read_input_text "Confirm keymap: $KEYMAP"
+  done
+  echo "KEYMAP=${KEYMAP}" > ${MNT}/etc/vconsole.conf
+}
+#}}}
 #SELECT KEYMAP {{{
 select_xkeymap(){
   print_title "LABWC DESKTOP KEYBOARD LAYOUT"
@@ -897,11 +909,11 @@ install_archbang(){
   UPPERDIR=$(find /run/archiso/cowspace -type d -path "*/persistent_*/x86_64/upperdir" 2>/dev/null | head -1)
   if [[ -n "$UPPERDIR" && -d "$UPPERDIR" ]]; then
     print_info "Syncing live session changes..."
-    rsync -av "$UPPERDIR/" "${MNT}/" >/dev/null 2>&1
+    rsync -av "$UPPERDIR/" "${MNT}/" >/dev/null 2>&1 || print_warning "Cowspace sync had errors (non-fatal)"
   fi
 
   # Generate unique machine id
-  arch-chroot ${MNT} systemd-machine-id-setup
+  arch_chroot "systemd-machine-id-setup"
 
   # Convert mkinitcpio preset from archiso to standard for installed system
   cat > ${MNT}/etc/mkinitcpio.d/linux.preset <<'EOF'
@@ -923,6 +935,7 @@ EOF
   # Remove gparted-launcher script
   rm -f ${MNT}/home/${LIVE_USER}/AB_Scripts/gparted-launcher &> /dev/null
 
+  # NOTE: These sed commands are labwc-specific. Update if window manager changes.
   # Remove installer from root-menu
   sed -i '/<!-- abinstall 5 -->/,+3d' ${MNT}/home/${LIVE_USER}/.config/labwc/menu.xml
 
@@ -948,9 +961,6 @@ EOF
 
   # clean out live user overlay files from /etc/skel on new install
   rm -r ${MNT}/etc/skel &>/dev/null
-
-  # Revert gparted to stock version without sudo
-  #sed -i 's|^Exec=sudo /usr/bin/gparted|Exec=/usr/bin/gparted|' ${MNT}/usr/share/applications/gparted.desktop
 
   # Restore gparted visibility in menus
   sed -i '/^Hidden=true/d' ${MNT}/usr/share/applications/gparted.desktop
@@ -1258,7 +1268,7 @@ welcome_screen(){
   echo -e "\t3. Set hostname"
   echo -e "\t4. Configure timezone & mirrors"
   echo -e "\t5. Set locale & language"
-  echo -e "\t6. Configure desktop keyboard layout"
+  echo -e "\t6. Configure console and desktop keyboard layout"
   echo -e "\t7. Install bootloader (GRUB)"
   echo -e "\t8. Set root password & create your user\n"
 
@@ -1333,7 +1343,7 @@ run_step 2 "Install ArchBang"        install_archbang configure_fstab configure_
 run_step 3 "Hostname"                configure_hostname
 run_step 4 "Location"                configure_timezone configure_hardwareclock configure_mirrors
 run_step 5 "Locale"                  configure_locale
-run_step 6 "Desktop Keyboard Layout" select_xkeymap
+run_step 6 "Keyboard Layout"         configure_vconsole select_xkeymap
 run_step 7 "Bootloader"              configure_bootloader
 run_step 8 "Root and User Setup"     root_password setup_user
 finish
