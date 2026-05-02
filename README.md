@@ -36,6 +36,7 @@ ArchBang system installer - a comprehensive bash-based installation script for A
 - Root password setup
 - New user creation with sudo access
 - Live user cleanup
+- Sudo hardened post-install: live ISO uses passwordless sudo (`NOPASSWD`) for convenience; installer reverts this so the installed system requires a password for all sudo operations
 
 ## Usage
 
